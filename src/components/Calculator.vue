@@ -43,6 +43,51 @@ export default {
   name: 'calculator',
   components: {DigitButton, Display, OpPad},
   methods: {
+    handleBitToggle: function (bit, index) {
+      if (bit === '0') {
+        this.decValue = math.add(this.decValue, 2 ** index)
+      } else {
+        this.decValue = math.subtract(this.decValue, 2 ** index)
+      }
+    },
+    handleDigit: function (digit) {
+      let currentValue
+      if (math.isZero(this.decValue) || !this.appendDigits) {
+        currentValue = this.mode === 'dec' ? digit : `0x${digit}`
+        this.appendDigits = true
+      } else {
+        currentValue = this.mode === 'dec' ? `${this.formattedDecValue}${digit}` : `${this.hexValue}${digit}`
+      }
+      this.decValue = math.bignumber(currentValue)
+    },
+    handleOp: function (operation, result, isUnary) {
+      this.appendDigits = false
+      this.history.push(
+        {'value': this.mode === 'hex' ? this.hexValue : this.formattedDecValue,
+          'base': this.base,
+          'operation': operation
+        })
+
+      if (result) {
+        this.decValue = result
+      }
+
+      if (isUnary) {
+        this.history = []
+        this.leftOperand = null
+        return
+      }
+
+      this.leftOperand = this.decValue
+    },
+    handleClear: function (clearAll) {
+      this.decValue = math.bignumber(0)
+      this.signedBinary = '0b0'
+      if (clearAll) {
+        this.history = []
+        this.leftOperand = null
+      }
+    },
     adjustForSizeAndSign: function () {
       let adjustedValue = this.decValue
       // first trim any bits out of the current size range
@@ -67,55 +112,8 @@ export default {
         }
       }
 
+      this.sizeSignAdjusted = true
       this.decValue = adjustedValue
-    },
-    handleBitToggle: function (bit, index) {
-      if (bit === '0') {
-        this.decValue = math.add(this.decValue, 2 ** index)
-      } else {
-        this.decValue = math.subtract(this.decValue, 2 ** index)
-      }
-      this.adjustForSizeAndSign()
-    },
-    handleDigit: function (digit) {
-      let currentValue
-      if (math.isZero(this.decValue) || !this.appendDigits) {
-        currentValue = this.mode === 'dec' ? digit : `0x${digit}`
-        this.appendDigits = true
-      } else {
-        currentValue = this.mode === 'dec' ? `${this.formattedDecValue}${digit}` : `${this.hexValue}${digit}`
-      }
-      this.decValue = math.bignumber(currentValue)
-      this.adjustForSizeAndSign()
-    },
-    handleOp: function (operation, result, isUnary) {
-      this.appendDigits = false
-      this.history.push(
-        {'value': this.mode === 'hex' ? this.hexValue : this.formattedDecValue,
-          'base': this.base,
-          'operation': operation
-        })
-
-      if (result) {
-        this.decValue = result
-        this.adjustForSizeAndSign()
-      }
-
-      if (isUnary) {
-        this.history = []
-        this.leftOperand = null
-        return
-      }
-
-      this.leftOperand = this.decValue
-    },
-    handleClear: function (clearAll) {
-      this.decValue = math.bignumber(0)
-      this.signedBinary = '0b0'
-      if (clearAll) {
-        this.history = []
-        this.leftOperand = null
-      }
     }
   },
   watch: {
@@ -126,6 +124,14 @@ export default {
       this.adjustForSizeAndSign()
     },
     signed: function () {
+      this.adjustForSizeAndSign()
+    },
+    decValue: function () {
+      // early exit needed to prevent infinite loop
+      if (this.sizeSignAdjusted) {
+        this.sizeSignAdjusted = false
+        return
+      }
       this.adjustForSizeAndSign()
     }
   },
@@ -146,6 +152,7 @@ export default {
   data () {
     return {
       decValue: math.bignumber(0),
+      sizeSignAdjusted: false,
       leftOperand: null,
       appendDigits: true,
       history: [],
