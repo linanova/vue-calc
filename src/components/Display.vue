@@ -12,7 +12,9 @@
     </v-card>
 
     <v-card flat id="binary-display" class="text-xs-right pa-2 my-2">
-      {{ formattedBinary }}
+      <template v-for="(bit, index) in formattedBinary">
+        <span :class="index % 4 === 0 ? 'pl-3' : ''" @click="bitClick(bit, index)"> {{ bit }} </span>
+      </template>
     </v-card>
   </div>
 </template>
@@ -29,7 +31,15 @@ export default {
     formattedBinary: function () {
       let binaryNoPrefix = this.binary.replace('0b', '')
       let padding = '0'.repeat(this.bitSize - binaryNoPrefix.length)
-      return padding.concat(binaryNoPrefix).replace(/(.{4})/g, '$1 ')
+      return padding.concat(binaryNoPrefix)
+    }
+  },
+  methods: {
+    bitClick: function (bit, index) {
+      // index here is relative to the string binary representation
+      // we need to flip it around to represent the actual binary index
+      let binaryIndex = this.bitSize - 1 - index
+      this.$emit('binary-mod', bit, binaryIndex)
     }
   }
 }

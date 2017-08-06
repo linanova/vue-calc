@@ -4,7 +4,8 @@
       <v-layout>
         <v-flex xs6 offset-xs3>
           <display :mode="mode" :history="history" :bitSize="size"
-          :hex="hexValue" :dec="formattedDecValue" :binary="binaryValue"></display>
+          :hex="hexValue" :dec="formattedDecValue" :binary="binaryValue"
+          @binary-mod="handleBitToggle"></display>
           <v-toolbar dense flat>
             <v-btn-toggle mandatory :items="mode_options" v-model="mode"></v-btn-toggle>
             <v-btn-toggle mandatory :items="sign_options" v-model="signed"></v-btn-toggle>
@@ -13,8 +14,8 @@
         </v-flex>
       </v-layout>
 
-      <v-layout class="mt-3">
-        <v-flex xs3 offset-xs3>
+      <v-layout justify-center class="mt-3">
+        <v-flex xs3>
           <template v-for="n in ['D', 'E', 'F', 'A', 'B', 'C']">
             <digit-button :active="mode === 'hex'" :value="n" @digit-click="handleDigit"></digit-button>
           </template>
@@ -44,22 +45,37 @@ export default {
   methods: {
     adjustForSizeAndSign: function () {
       let adjustedValue = this.decValue
+      // first trim any bits out of the current size range
       let sizeMask = math.subtract(math.leftShift(math.bignumber(1), this.size), 1)
       adjustedValue = math.bitAnd(adjustedValue, sizeMask)
 
       if (this.signed) {
+        // if we are treating this as signed, we want to preserve the binary
+        // representation when adjusting the computed value
         this.signedBinary = adjustedValue.toBinary()
+        // determine if the sign bit is 0 or 1
         let signMask = math.leftShift(math.bignumber(1), this.size - 1)
         let negative = !math.isZero(math.bitAnd(adjustedValue, signMask))
 
         if (negative) {
+          // take 2s complement to determine absolute value
           adjustedValue = math.add(math.bitNot(adjustedValue), 1)
+          // trim to size again, since the above operation would have flipped
+          // all bits and we are pretending some of them don't exist
           adjustedValue = math.bitAnd(adjustedValue, sizeMask)
           adjustedValue = math.unaryMinus(adjustedValue)
         }
       }
 
       this.decValue = adjustedValue
+    },
+    handleBitToggle: function (bit, index) {
+      if (bit === '0') {
+        this.decValue = math.add(this.decValue, 2 ** index)
+      } else {
+        this.decValue = math.subtract(this.decValue, 2 ** index)
+      }
+      this.adjustForSizeAndSign()
     },
     handleDigit: function (digit) {
       let currentValue
