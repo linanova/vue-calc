@@ -7,13 +7,15 @@
     </v-card>
 
     <v-card id="active-display" class="pr-4 amber lighten-4 text-xs-right">
-      <span v-show="mode === 'hex'"> {{ formattedHex }} </span>
-      <span v-show="mode === 'dec'"> {{ dec }} </span>
+      <span v-show="mode === 'hex'">{{ formattedHex }}</span>
+      <span v-show="mode === 'dec'">{{ dec }}</span>
     </v-card>
 
-    <v-card flat id="binary-display" class="text-xs-right pa-2 my-2">
+    <v-card flat id="binary-display"
+    :class="[bitSize >= 32 ? 'text-xs-center' : 'text-xs-right', 'pa-2', 'pr-4', 'my-2']">
       <template v-for="(bit, index) in formattedBinary">
-        <span :class="index % 4 === 0 ? 'pl-3' : ''" @click="bitClick(bit, index)"> {{ bit }} </span>
+        <span v-if="index !== 0 && index % 32 === 0"></span>
+        <span :class="index % 4 === 0 ? 'ml-3' : ''" @click="bitClick(bit, index)">{{ bit }}</span>
       </template>
     </v-card>
   </div>
@@ -58,6 +60,6 @@ sub {
 }
 #binary-display {
   letter-spacing: 2px;
-  min-height: 2em;
+  min-height: 4em;
 }
 </style>

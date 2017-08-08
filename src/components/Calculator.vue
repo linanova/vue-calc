@@ -44,10 +44,11 @@ export default {
   components: {DigitButton, Display, OpPad},
   methods: {
     handleBitToggle: function (bit, index) {
+      let toggleValue = math.pow(2, math.bignumber(index))
       if (bit === '0') {
-        this.decValue = math.add(this.decValue, 2 ** index)
+        this.decValue = math.add(this.decValue, toggleValue)
       } else {
-        this.decValue = math.subtract(this.decValue, 2 ** index)
+        this.decValue = math.subtract(this.decValue, toggleValue)
       }
     },
     handleDigit: function (digit) {
@@ -112,7 +113,11 @@ export default {
         }
       }
 
-      this.sizeSignAdjusted = true
+      if (math.equal(this.decValue, adjustedValue)) {
+        return
+      }
+
+      this.blockDecValueWatcher = true
       this.decValue = adjustedValue
     }
   },
@@ -128,8 +133,8 @@ export default {
     },
     decValue: function () {
       // early exit needed to prevent infinite loop
-      if (this.sizeSignAdjusted) {
-        this.sizeSignAdjusted = false
+      if (this.blockDecValueWatcher) {
+        this.blockDecValueWatcher = false
         return
       }
       this.adjustForSizeAndSign()
@@ -152,7 +157,7 @@ export default {
   data () {
     return {
       decValue: math.bignumber(0),
-      sizeSignAdjusted: false,
+      blockDecValueWatcher: false,
       leftOperand: null,
       appendDigits: true,
       history: [],
@@ -167,8 +172,7 @@ export default {
         {text: '8', value: 8},
         {text: '16', value: 16},
         {text: '32', value: 32},
-        {text: '64', value: 64},
-        {text: '128', value: 128}
+        {text: '64', value: 64}
       ],
       mode: 'dec',
       mode_options: [
